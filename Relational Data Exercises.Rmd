@@ -1,0 +1,385 @@
+---
+title: "Relational Data Exercises from *R for Data Science*"
+author: "Stuart Barnum"
+date: "1/30/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+#### 13.3.1 Exercises
+##### 1. Add a surrogate key to *flights*.
+```{r}
+library(nycflights13)
+flights %>% mutate(row_number = row_number())
+```
+
+##### 2. Identify the keys in the following datasets
+`babynames::babynames`
+```{r}
+library(babynames)
+babynames
+babynames %>% 
+  count(name, n, prop) %>%
+  filter(nn > 1)
+```
+We thus see that (name, n, prop) specifies a key.
+
+***
+
+`nasaweather::atmos`
+```{r}
+library(nasaweather)
+atmos
+atmos %>%
+  count(lat, long, year, month) %>%
+  filter(n > 1)
+
+```
+We thus see that (lat, long, year, month) specifies a key.
+
+***
+
+`fueleconomy::vehicles`
+```{r}
+library(fueleconomy)
+v <- vehicles
+vehicles %>% 
+  count(id) %>%
+  filter(n > 1)
+```
+
+We thus see that the variable `id` is a key.
+
+***
+
+`ggplot2::diamonds`
+```{r}
+library(ggplot2)
+diamonds
+diamonds %>% 
+  count(x, y, z, price, depth, table, clarity, carat, color, clarity) %>%
+  filter(n > 1)
+```
+
+In the diamonds dataset, grouping by all of the keys as above leaves 149 rows with more than one member. The dataset thus contains no key.
+
+***
+#### 13.4.6 Exercises
+##### 1. Compute the average delay by destination, then join on the airports data frame so you can show the spatial distribution of delays.
+
+```{r}
+ave_delay <- flights %>% 
+  group_by(dest) %>%
+  summarize(average = mean(arr_delay, na.rm = TRUE))
+airport_distribution <- ave_delay %>% left_join(airports, by = c("dest" = "faa"))
+
+airport_distribution %>%
+  filter(!is.na(lat)) %>%
+  ggplot(aes(lon, lat)) +
+  borders("state") +
+  geom_point(aes(color = average)) +
+  coord_quickmap() +
+  labs(color = "average\ndelay in\nminutes")
+
+```
+
+###### 2. Add the location of the origin and destination (i.e. the lat and lon) to `flights`.
+
+```{r}
+airports_select <- airports %>% select(faa, lat, lon)
+
+temp <- flights %>% 
+  left_join(airports_select, by = c("origin" = "faa")) %>%
+  rename(origin_lat = lat, origin_lon = lon) %>%
+  left_join(airports_select, by = c("dest" = "faa")) %>%
+  rename(dest_lat = lat, dest_lon = lon)
+temp
+```
+
+#####3. Is there a relationship between the age of a plane and its delays?
+
+```{r}
+#find the average arrival delay for each plane
+
+plane_join <- flights %>%
+  inner_join(planes, by = "tailnum")
+
+delay_stats_year <- plane_join %>%
+  group_by(year.y) %>%
+  summarize(mean = mean(arr_delay, na.rm = TRUE),
+            `50th percentile` = median(arr_delay, na.rm = TRUE),
+            `25th percentile` = quantile(arr_delay, probs = .25, na.rm = TRUE),
+            `75th percentile` = quantile(arr_delay, probs = .75, na.rm = TRUE),
+            `10th percentile` = quantile(arr_delay, probs = .10, na.rm = TRUE),
+            `90th percentile` = quantile(arr_delay, probs = .90, na.rm = TRUE))
+
+stacked_stats <- delay_stats_year %>%
+  gather(`90th percentile`, `75th percentile`, `50th percentile`, `25th percentile`,
+         `10th percentile`, `mean`,
+         key = "statistic", value = "value") 
+  
+ggplot(stacked_stats) + 
+  geom_line(aes(x = 2013 - year.y, y = value, 
+                color = statistic)) +
+  scale_color_discrete(breaks = c("90th percentile", "75th percentile", "mean", 
+                                  "50th percentile", "25th percentile", "10th percentile")) +
+  labs(x = "age in years", y = "delay in minutes",
+       title = "Flight Delays by Year of Manufacture of Plane") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+The bump in the mean and at the upper percentiles of this plot, peaking at perhaps 8 and 9 years of age, is interesting. It appears that at least a significant number of the planes may have become less reliable over the beginning of the first decade of use, and then become more reliable (supposing, of course, that the data reflect the condition of the planes and not, say, the selection of certain models to be used in certain weather conditions).
+
+The above data is by individual flight. Let's look at the averages for the individual planes.
+
+```{r}
+
+plane_delay_averages <- flights %>%
+  group_by(tailnum) %>%
+  summarize(average_arr_delay = mean(arr_delay, na.rm = TRUE))
+
+plane_join <- plane_delay_averages %>%
+  inner_join(planes, by = "tailnum")
+
+delay_stats_year <- plane_join %>%
+  group_by(year) %>%
+  summarize(mean = mean(average_arr_delay, na.rm = TRUE),
+            `50th percentile` = median(average_arr_delay, na.rm = TRUE),
+            `25th percentile` = quantile(average_arr_delay, probs = .25, na.rm = TRUE),
+            `75th percentile` = quantile(average_arr_delay, probs = .75, na.rm = TRUE),
+            `10th percentile` = quantile(average_arr_delay, probs = .10, na.rm = TRUE),
+            `90th percentile` = quantile(average_arr_delay, probs = .90, na.rm = TRUE))
+
+stacked_stats <- delay_stats_year %>%
+  gather(`90th percentile`, `75th percentile`, `50th percentile`, `25th percentile`,
+         `10th percentile`, `mean`,
+         key = "statistic", value = "value") 
+  
+ggplot(stacked_stats) + 
+  geom_line(aes(x = 2013 - year, y = value, 
+                color = statistic)) +
+  scale_color_discrete(breaks = c("90th percentile", "75th percentile", "mean", 
+                                  "50th percentile", "25th percentile", "10th percentile")) +
+  labs(x = "age in years", y = "average delay in minutes",
+       title = "Flight Delay Averages by Year of Manufacture of the Plane") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+```
+
+The data for the average arrival delay for each plane is consistent with the suspicion, raised in connection with the previous plot, that, initially, the delays become somewhat greater as the planes become older, until the planes are just short of 10 years. After that, there may be a week trend towards fewer delays as the planes get older. The sudden change in the behavior of the plot after perhaps 28 years is also interesting. It might reflect a practice of taking most of the planes out of service at this relatively advanced age. Does the data contain other evidence for this hypothesis? 
+
+```{r}
+older_plane_investigation <- flights %>%
+  inner_join(planes, by = "tailnum") %>%
+  group_by(year.y) %>%
+  count(tailnum) %>%
+  count(year.y)
+
+ggplot(older_plane_investigation %>% na.omit) + 
+  geom_point(aes(x = 2013 - year.y, y = nn)) +
+  labs(x = "age in years", y = "number of planes with at least one departure, if any",
+       title = "Numbers of Planes Departing from New York City Airports") +
+  theme(plot.title = element_text(hjust = 0.5))
+  
+```
+
+As suggested in the Flight Delay Averages plot, we see from the above that the number of planes in use, for departures from New York City, falls precipitously as the planes approach 30 years in age.
+
+
+#####4. What weather conditions make it more likely to see a delay?
+
+```{r}
+#consider various averages over hours (all of the hours, in the year, reflected in the data)
+weather_by_flight_by_hour <- flights %>%
+  left_join(weather, by = c("year", "month", "day", "hour", "origin")) %>%
+  group_by(year, month, day, hour, origin, temp, dewp, humid,
+           wind_dir, wind_speed, wind_gust, precip, pressure, visib) %>%
+  summarize(ave_dep_delay = mean(dep_delay, na.rm = TRUE),
+            n = n(),
+            proportion_cancelled = sum(is.na(dep_delay)) / n)
+
+#To confirm some suggestions from plots of the values calculated in the above, we consider averages of delays over various values of the weather variables (or, if useful, intervals of such values)
+weather_by_flight <- flights %>%
+  left_join(weather, by = c("year", "month", "day", "hour", "origin")) %>%
+  group_by(visib) %>%
+  summarize(ave_dep_delay = mean(dep_delay, na.rm = TRUE),
+            `number_of_cases / 10,000` = n() / 10000,
+            percentage_cancelled = 100 * sum(is.na(dep_delay)) / n())
+
+#put data to be plotted into a single column, to make it "tidy," and then plot it
+weather_by_flight %>% na.omit() %>%
+  gather(ave_dep_delay, percentage_cancelled, `number_of_cases / 10,000`, 
+         key = "statistic", value = "value") %>%
+  ggplot() + geom_point(aes(x = visib, y = value, color = statistic)) +
+  labs(x = "visibility (with \"10\" standing for 10 or greater)", 
+       title = "Airport Departure Statistics, by Visibility") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_blank())
+  
+```
+ 
+As visibility increases, we see a decrease in both cancellations and the delays. However, given that the vast majority of cases rest in the visibility category of 10 or greater, some guardedness in our conclusions, based on the data in the `nycflights13` package, is warranted.
+
+##### What happened on June 13 2013? Display the spatial pattern of delays, and then use Google to cross-reference with the weather.
+
+```{r}
+
+ave_delay_6_13 <- flights %>% 
+  filter(year == 2013 & month == 6 & day ==13) %>%
+  group_by(dest) %>%
+  summarize(average = mean(arr_delay, na.rm = TRUE))
+airport_distribution_6_13 <- ave_delay_6_13 %>% left_join(airports, by = c("dest" = "faa"))
+
+airport_distribution_6_13 %>%
+  filter(!is.na(lat) & lon > -130) %>%
+  ggplot(aes(lon, lat)) +
+  borders("state") +
+  geom_point(aes(color = average)) +
+  coord_quickmap() +
+  labs(color = "average\ndelay in\nminutes",
+       title = "Arrival Delays for Flights from New York, June 13, 2013") +
+  theme(plot.title = element_text(hjust = .5))
+
+```
+
+There were notable delays in Chattanooga, Tennessee and Birmingham, Alabama. These may have been due to severe storms called decheros. See https://www.weatherworksinc.com/June-12-13-Derechoes .
+
+
+####13.5.1 Exercises
+#####1. What does it mean for a flight to have a missing tailnum? What do the tail numbers that don’t have a matching record in planes have in common? (Hint: one variable explains ~90% of the problems.)
+
+```{r}
+with_tailnum <- flights %>%
+  left_join(planes, by = "tailnum") %>%
+  count(carrier)
+
+without_tailnum <- flights %>%
+  anti_join(planes, by = "tailnum") %>%
+  count(carrier)
+
+comparison <- with_tailnum %>%
+  left_join(without_tailnum, by = "carrier")
+
+#check to see whether the `carrier` variable has `NA`s. (It doesn't)
+flights %>% filter(is.na(carrier))
+
+comparison
+```
+
+Column `n.x` reflects all of the data in the `flights` dataframe, whereas `n.y` reflects flights for which tail number information is missing. We see that MQ (Envoy Airlines) and AA (American Airlines) are responsible for most of the missing tail-number data.
+
+####2. Filter `flights` to only show flights with planes that have flown at least 100 flights.
+
+```{r}
+at_least_hundred <- flights %>%
+  filter(!is.na(arr_delay)) %>%  #avoid counting cancelled flights
+  group_by(tailnum) %>%
+  mutate(n = n()) %>%
+  ungroup() %>%
+  filter(n >= 100)
+
+at_least_hundred
+```
+
+The above may be the best answer if the intention is to show only the flights that were not cancelled. Otherwise, the following should work.
+
+```{r}
+temp <- flights %>%
+  filter(!is.na(arr_delay)) %>% #to avoid counting cancelled flights has having occurred
+  count(tailnum) %>%
+  filter(n >= 100)
+
+#bring back the unfiltered dataframe, so as to count all scheduled flights (whether
+#cancelled or not)
+second_method <- flights %>% 
+  semi_join(temp, by = "tailnum")
+
+second_method  
+```
+
+#####3. Combine `fueleconomy::vehicles` and `fueleconomy::common` to find only the records for the most common models.
+
+We can think of vehicle models at various levels specificity. When a certain car is rebranded under a different name (say, a Chevrolet branded as a GM), is it the same "model"? To see the the extent of this sort of thing (along with, probably, some other issues that could go into whether the variable `model` uniquely identifies vehicle models), consider the following calculation, which uncovers the values of `model` that have more than one corresponding vehicle make. 
+
+```{r}
+library(fueleconomy)
+vehicles %>%
+  count(model, make) %>%
+  group_by(model) %>%
+  mutate(`number of corresponding makes` = n()) %>%
+  filter(`number of corresponding makes` > 1)
+```
+In most but not all of the cases, the two or three models with the different entries for `make` are significantly different. I'll thus assume that two vehicles are different models only if the corresponding values of both `model` and `make` are different. Thus restricting the information in `vehicles` to the "common" models (those reflected in the `common` dataframe):
+```{r}
+vehicles %>%
+  semi_join(common, by = c("make", "model"))
+```
+
+#####4. Find the 48 hours (over the course of the whole year) that have the worst delays. Cross-reference it with the weather data. Can you see any patterns?
+
+This question could pertain to 48-hour periods or, instead, to sets of 48 one-hour periods. Considering the second of these readings, and supposing that the periods with the worst delays are the periods with the greatest average of all delays,
+
+```{r}
+flights
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+x <- tribble(
+  ~key, ~val_x,
+     1, "x1",
+     2, "x2",
+     3, "x3",
+     3, "x4",
+     4, "x5"
+  )
+
+y <- tribble(
+  ~key, ~val_y,
+     1, "x4",
+     2, "x2",
+     2, "x4",
+     7, "x5"
+)
+
+x %>% group_by(key) %>%
+  count(key)
+
+left_join(x, y, by = c("val_x" = "val_y"))
+
+semi_join(x, y, by = "key")
+
+anti_join(x, y, by = c("val_x" = "val_y"))
+
+```
+
+
+
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
