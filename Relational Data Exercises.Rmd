@@ -326,60 +326,31 @@ vehicles %>%
 This question could pertain to 48-hour periods or, instead, to sets of 48 one-hour periods. Considering the second of these readings, and supposing that the periods with the worst delays are the periods with the greatest average of all delays,
 
 ```{r}
-flights
 
+average_delays <- 
+  flights %>%
+  group_by(year, month, day, hour) %>%
+  summarize(average_delay = mean(arr_delay)) %>%
+  ungroup()
 
+average_delay <- arrange(average_delays, desc(average_delay))
+top_48 <- head(average_delay, n = 48L)
 
-```
+top_48_weather <- top_48 %>%
+  left_join(weather, by = c("year", "month", "day", "hour"))
 
+average_delays_weather <- average_delays %>%
+  left_join(weather, by = c("year", "month", "day", "hour"))
 
+ave_48 <- map_dbl(top_48_weather, mean, na.rm = TRUE)
 
+ave_all <- map_dbl(average_delays_weather, mean, na.rm = TRUE)
 
+difference <- ave_48 - ave_all #find the differences in the mean, where this makes sense
 
-
-
-```{r}
-x <- tribble(
-  ~key, ~val_x,
-     1, "x1",
-     2, "x2",
-     3, "x3",
-     3, "x4",
-     4, "x5"
-  )
-
-y <- tribble(
-  ~key, ~val_y,
-     1, "x4",
-     2, "x2",
-     2, "x4",
-     7, "x5"
-)
-
-x %>% group_by(key) %>%
-  count(key)
-
-left_join(x, y, by = c("val_x" = "val_y"))
-
-semi_join(x, y, by = "key")
-
-anti_join(x, y, by = c("val_x" = "val_y"))
+difference
 
 ```
 
+The above shows the differences between the column means for the 48 hours with the greatest delays and the column means for all of the flights (for all of the hours of the year). As one might expect, for the 48 hours with the greatest delays, the average visibility and pressure were somewhat lesser, while the average precipitation was somewhat greater.
 
-
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
