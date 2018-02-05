@@ -1,10 +1,10 @@
 ---
 title: "Relational Data Exercises from *R for Data Science*"
 author: "Stuart Barnum"
-date: "1/30/2018"
+date: "2/3/2018"
 output: html_document
 ---
-
+ 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
@@ -68,6 +68,7 @@ diamonds %>%
 In the diamonds dataset, grouping by all of the keys as above leaves 149 rows with more than one member. The dataset thus contains no key.
 
 ***
+
 #### 13.4.6 Exercises
 ##### 1. Compute the average delay by destination, then join on the airports data frame so you can show the spatial distribution of delays.
 
