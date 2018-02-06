@@ -617,6 +617,121 @@ difference</code></pre>
 ##  3.892214e+05</code></pre>
 <p>The above shows the differences between the column means for the 48 hours with the greatest delays and the column means for all of the flights (for all of the hours of the year). As one might expect, for the 48 hours with the greatest delays, the average visibility and pressure were somewhat lesser, while the average precipitation was somewhat greater.</p>
 </div>
+<div id="what-does-anti_joinflights-airports-by-cdest-faa-tell-you-what-does-anti_joinairports-flights-by-cfaa-dest-tell-you" class="section level5">
+<h5>5. What does anti_join(flights, airports, by = c(“dest” = “faa”)) tell you? What does anti_join(airports, flights, by = c(“faa” = “dest”)) tell you?</h5>
+<p>The dataframe <code>anti_join(flights, airports, by = c(&quot;dest&quot; = &quot;faa&quot;))</code> identifies the flights in the <code>flights</code> dataframe for which the destination is not listed in the <code>airports</code> dataframe. Both of the flights and the airports dataframe are supposed to cover domestic flights, and airports, only. So it may seem that result of the “anti-join” include fights to domestic airports for which data in the <code>airports</code> dataframe is missing. Let’s look.</p>
+<pre class="r"><code>anti_join(flights, airports, by = c(&quot;dest&quot; = &quot;faa&quot;)) %&gt;%
+  count(dest)</code></pre>
+<pre><code>## # A tibble: 4 x 2
+##   dest      n
+##   &lt;chr&gt; &lt;int&gt;
+## 1 BQN     896
+## 2 PSE     365
+## 3 SJU    5819
+## 4 STT     522</code></pre>
+<p>All these airports are in US territories (that are not states). Rather than simply indicating missing data in the airports dataframe, the result of the anti-join may indicate an ambiguity with respect to the meaning of “domestic,” with the <code>airports</code> dataframe constructed with a somewhat more restrictive interpretation.</p>
+<pre class="r"><code>anti_join(airports, flights, by = c(&quot;faa&quot; = &quot;dest&quot;)) %&gt;%
+  count(faa)</code></pre>
+<pre><code>## # A tibble: 1,357 x 2
+##    faa       n
+##    &lt;chr&gt; &lt;int&gt;
+##  1 04G       1
+##  2 06A       1
+##  3 06C       1
+##  4 06N       1
+##  5 09J       1
+##  6 0A9       1
+##  7 0G6       1
+##  8 0G7       1
+##  9 0P2       1
+## 10 0S9       1
+## # ... with 1,347 more rows</code></pre>
+<p>It appears that there were 1,357 domestic airports reflected in the airports data to which there were no flights (as per the <code>flights</code> data) from New York.</p>
+</div>
+<div id="you-might-expect-that-theres-an-implicit-relationship-between-plane-and-airline-because-each-plane-is-flown-by-a-single-airline.-confirm-or-reject-this-hypothesis-using-the-tools-youve-learned-above." class="section level5">
+<h5>6. You might expect that there’s an implicit relationship between plane and airline, because each plane is flown by a single airline. Confirm or reject this hypothesis using the tools you’ve learned above.</h5>
+<p>We take a quick look at the headings and initial values of some possibly relevant data frames.</p>
+<pre class="r"><code>glimpse(airlines)</code></pre>
+<pre><code>## Observations: 16
+## Variables: 2
+## $ carrier &lt;chr&gt; &quot;9E&quot;, &quot;AA&quot;, &quot;AS&quot;, &quot;B6&quot;, &quot;DL&quot;, &quot;EV&quot;, &quot;F9&quot;, &quot;FL&quot;, &quot;HA&quot;, ...
+## $ name    &lt;chr&gt; &quot;Endeavor Air Inc.&quot;, &quot;American Airlines Inc.&quot;, &quot;Alaska...</code></pre>
+<pre class="r"><code>glimpse(planes)</code></pre>
+<pre><code>## Observations: 3,322
+## Variables: 9
+## $ tailnum      &lt;chr&gt; &quot;N10156&quot;, &quot;N102UW&quot;, &quot;N103US&quot;, &quot;N104UW&quot;, &quot;N10575&quot;,...
+## $ year         &lt;int&gt; 2004, 1998, 1999, 1999, 2002, 1999, 1999, 1999, 1...
+## $ type         &lt;chr&gt; &quot;Fixed wing multi engine&quot;, &quot;Fixed wing multi engi...
+## $ manufacturer &lt;chr&gt; &quot;EMBRAER&quot;, &quot;AIRBUS INDUSTRIE&quot;, &quot;AIRBUS INDUSTRIE&quot;...
+## $ model        &lt;chr&gt; &quot;EMB-145XR&quot;, &quot;A320-214&quot;, &quot;A320-214&quot;, &quot;A320-214&quot;, ...
+## $ engines      &lt;int&gt; 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2...
+## $ seats        &lt;int&gt; 55, 182, 182, 182, 55, 182, 182, 182, 182, 182, 5...
+## $ speed        &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N...
+## $ engine       &lt;chr&gt; &quot;Turbo-fan&quot;, &quot;Turbo-fan&quot;, &quot;Turbo-fan&quot;, &quot;Turbo-fan...</code></pre>
+<pre class="r"><code>glimpse(flights)</code></pre>
+<pre><code>## Observations: 336,776
+## Variables: 19
+## $ year           &lt;int&gt; 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013,...
+## $ month          &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,...
+## $ day            &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,...
+## $ dep_time       &lt;int&gt; 517, 533, 542, 544, 554, 554, 555, 557, 557, 55...
+## $ sched_dep_time &lt;int&gt; 515, 529, 540, 545, 600, 558, 600, 600, 600, 60...
+## $ dep_delay      &lt;dbl&gt; 2, 4, 2, -1, -6, -4, -5, -3, -3, -2, -2, -2, -2...
+## $ arr_time       &lt;int&gt; 830, 850, 923, 1004, 812, 740, 913, 709, 838, 7...
+## $ sched_arr_time &lt;int&gt; 819, 830, 850, 1022, 837, 728, 854, 723, 846, 7...
+## $ arr_delay      &lt;dbl&gt; 11, 20, 33, -18, -25, 12, 19, -14, -8, 8, -2, -...
+## $ carrier        &lt;chr&gt; &quot;UA&quot;, &quot;UA&quot;, &quot;AA&quot;, &quot;B6&quot;, &quot;DL&quot;, &quot;UA&quot;, &quot;B6&quot;, &quot;EV&quot;,...
+## $ flight         &lt;int&gt; 1545, 1714, 1141, 725, 461, 1696, 507, 5708, 79...
+## $ tailnum        &lt;chr&gt; &quot;N14228&quot;, &quot;N24211&quot;, &quot;N619AA&quot;, &quot;N804JB&quot;, &quot;N668DN...
+## $ origin         &lt;chr&gt; &quot;EWR&quot;, &quot;LGA&quot;, &quot;JFK&quot;, &quot;JFK&quot;, &quot;LGA&quot;, &quot;EWR&quot;, &quot;EWR&quot;...
+## $ dest           &lt;chr&gt; &quot;IAH&quot;, &quot;IAH&quot;, &quot;MIA&quot;, &quot;BQN&quot;, &quot;ATL&quot;, &quot;ORD&quot;, &quot;FLL&quot;...
+## $ air_time       &lt;dbl&gt; 227, 227, 160, 183, 116, 150, 158, 53, 140, 138...
+## $ distance       &lt;dbl&gt; 1400, 1416, 1089, 1576, 762, 719, 1065, 229, 94...
+## $ hour           &lt;dbl&gt; 5, 5, 5, 5, 6, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5,...
+## $ minute         &lt;dbl&gt; 15, 29, 40, 45, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, ...
+## $ time_hour      &lt;dttm&gt; 2013-01-01 05:00:00, 2013-01-01 05:00:00, 2013...</code></pre>
+<p>It looks like the <code>flights</code> dataframe may be sufficient for making this determination.</p>
+<pre class="r"><code>fl &lt;- flights %&gt;% 
+  count(tailnum, carrier) %&gt;%
+  count(tailnum) %&gt;%
+  filter(nn &gt; 1) 
+fl</code></pre>
+<pre><code>## # A tibble: 18 x 2
+##    tailnum    nn
+##    &lt;chr&gt;   &lt;int&gt;
+##  1 N146PQ      2
+##  2 N153PQ      2
+##  3 N176PQ      2
+##  4 N181PQ      2
+##  5 N197PQ      2
+##  6 N200PQ      2
+##  7 N228PQ      2
+##  8 N232PQ      2
+##  9 N933AT      2
+## 10 N935AT      2
+## 11 N977AT      2
+## 12 N978AT      2
+## 13 N979AT      2
+## 14 N981AT      2
+## 15 N989AT      2
+## 16 N990AT      2
+## 17 N994AT      2
+## 18 &lt;NA&gt;        7</code></pre>
+<p>It would thus seem that at least 17 planes were used more by than one airline. Perhaps this reflects the fact that the same journey can be listed for more than one airline? Let’s include the airlines in this information, using <code>semi_join</code>, and see if we find, for these planes, matching flight numbers for two carriers.</p>
+<pre class="r"><code>flj &lt;- flights %&gt;% 
+  semi_join(fl, key = &quot;tailnum&quot;) %&gt;%
+  count(tailnum, carrier) %&gt;%
+  na.omit()</code></pre>
+<pre><code>## Joining, by = &quot;tailnum&quot;</code></pre>
+<pre class="r"><code>flights %&gt;% 
+  semi_join(flj, by = c(&quot;tailnum&quot;, &quot;carrier&quot;)) %&gt;%
+  count(carrier, tailnum, flight) %&gt;%
+  count(tailnum, flight) %&gt;%
+  filter(nn &gt; 1)</code></pre>
+<pre><code>## # A tibble: 0 x 3
+## # ... with 3 variables: tailnum &lt;chr&gt;, flight &lt;int&gt;, nn &lt;int&gt;</code></pre>
+<p>Because the result here is zero rows, we see that, for the tail numbers identified in <code>fl</code>, the combination of tail number and flight is sufficient to identify the carrier. The answer to the question I posed above is thus “no.”</p>
+</div>
 </div>
 
 
