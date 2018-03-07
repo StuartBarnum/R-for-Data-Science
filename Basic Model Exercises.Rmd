@@ -1,0 +1,229 @@
+---
+title: "Basic Model Exercises from *R for Data Science*"
+output: html_notebook
+---
+
+####23.2.1 Exercises 
+#####1. Fit a linear model to the simulated data below, and visualise the results. Rerun a few times to generate different simulated datasets. What do you notice about the model?
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+
+sim1a <- tibble(
+  x = rep(1:10, each = 3),
+  y = x * 1.5 + 6 + rt(length(x), df = 2)
+)
+```
+
+We compare the results for twelve simulated sets, using `facet_wrap`. 
+
+```{r, fig.height = 4}
+
+#generate the data with the t distribution, which is more likely than the normal distribution
+#to produce distant outliers
+sim1a_generation <- function(n) {
+  tibble(
+    n = n,  
+    x = rep(1:10, each = 3),
+    y = x * 1.5 + 6 + rt(length(x), df = 2)
+  )
+}
+
+facet_data <- map_df(1:12, sim1a_generation)
+
+ggplot(facet_data) + geom_point(aes(x=x, y=y)) +
+  geom_abline(aes(intercept = lm(y~x, facet_data)[[1]][[1]], 
+                  slope = lm(y~x, facet_data)[[1]][[2]]), 
+              color = "green") + 
+  facet_wrap(~ n, ncol = 4)
+
+```
+
+I expected to see more affect on the lines from the outliers in these plots.
+
+
+#####2. Use optim() to fit a linear model to the simulated data above, using mean-absolute distance rather than root-mean-squared distance, and compare the result to the linear model.
+
+```{r, fig.height = 4}
+#use a linear model to predict the y values, given the x values
+model1 <- function(a, data) {
+  a[1] + data$x * a[2]
+}
+
+#find the average of the absolute deviation, from the model, of the y values in the data
+measure_distance <- function(mod, data) {
+  diff <- data$y - model1(mod, data)
+  mean(abs(diff))
+}
+
+#use a facet_wrap, as with the root-mean-squared fitting
+ggplot(facet_data) + geom_point(aes(x = x, y = y)) +
+  geom_abline(aes(intercept = optim(c(0, 0), measure_distance, data = facet_data)$par[1], 
+                  slope = optim(c(0, 0), measure_distance, data = facet_data)$par[2]), 
+              color = "red") +
+  facet_wrap(~ n, ncol = 4)
+
+```
+
+####23.3.3 Exercises
+#####1. Repeat the process of model fitting, grid generation, predictions, and visualisation on sim1 using loess() instead of lm(). How does the result compare to geom_smooth()?
+
+We compare for two values of the parameter `span`, which specifies the neighborhood widths (lower numbers indicate closer fitting to nearby values in the data). First of for span = 0.5.
+
+```{r, fig.height = 4}
+
+ggplot(facet_data, aes(x=x, y=y)) + geom_point(size = 2) +
+  geom_smooth(method = "loess", color = "green", 
+              se = FALSE, span = 0.5) + 
+  facet_wrap(~ n, ncol = 4)
+
+```
+These loess curves are noticeably more susceptible to influence from outliers, and perhaps overfitting.
+
+Now use the loess method with span = 0.75.
+
+```{r, fig.height = 4}
+
+ggplot(facet_data, aes(x=x, y=y)) + geom_point(size = 2) +
+  geom_smooth(method = "loess", color = "green", 
+              se = FALSE, span = .75) + 
+  facet_wrap(~ n, ncol = 4)
+
+
+```
+
+As expected, the wider span of the neighborhoods makes the model-fit somewhat less susceptible to the outliers, and perhaps overfitting.
+
+#####2. `add_predictions()` is paired with `gather_predictions()` and `spread_predictions()`. How do these three functions differ?
+
+`add_predictions` places a new column in the data with a single prediction. `spread_predictions` adds more than one prediction, each in its own column. `gather_predictions` stacks the predictions (more than one) in a single column, in the manner of the `gather()` function and "tidy" data.
+
+#####3. What does geom_ref_line() do? What package does it come from? Why is displaying a reference line in plots showing residuals useful and important?
+
+`geom_ref_line()`, which is part of the modelr package, adds a line to a plot, which may help in the examination of residuals.
+
+######4.
+
+Why might you want to look at a frequency polygon of absolute residuals? What are the pros and cons compared to looking at the raw residuals?
+
+Pro: makes the absolute residuals more visible, with twice the contrast
+
+Con: may hide bias in the original model if, for example, the positive residuals tend to be greater than the negative residuals
+
+####23.4.5 Exercises
+
+#####1. What happens if you repeat the analysis of sim2 using a model without an intercept. What happens to the model equation? What happens to the predictions?
+
+```{r, fig.height = 1.2, warning = FALSE}
+ggplot(sim2) + geom_point(aes(x, y), size = 1)
+
+```
+
+```{r}
+mod2 <- lm(y ~ x - 1, data = sim2)
+
+grid <- sim2 %>% 
+  data_grid(x) %>% 
+  add_predictions(mod2)
+grid
+
+```
+
+This result is the same as what we would get if using y ~ x instead of y ~ x - 1.
+
+#####2. Use model_matrix() to explore the equations generated for the models I fit to sim3 and sim4. Why is * a good shorthand for interaction?
+
+First have a look at sim3:
+```{r}
+head(sim3)
+```
+
+<br>
+
+The result of using `+` in the model function:
+
+```{r}
+model_matrix(sim3, y ~ x1 + x2)
+```
+
+<br>
+
+Compare the above to the result of using `*`:
+
+```{r}
+model_matrix(sim3, y ~ x1 * x2)
+```
+
+Flipping through this dataframe, we can see how `*` allows us to search for interaction, in a way that `+` does not.
+
+<br>
+
+Next have a look at sim4:
+```{r}
+sim4
+```
+
+<br>
+
+The result, for sim3, of the use of `+` in the model formula:
+```{r}
+model_matrix(sim4, y ~ x1 + x2)
+```
+
+<br>
+
+Compare this to the result of the use of `*` in the sim4 model formula:
+```{r}
+model_matrix(sim4, y ~ x1 * x2)
+```
+
+We see, in this case in which none of the variables is a factor or character variable, that the interaction term is simply the product of the two variables. And of course, for both sim3 and sim4, using * allows us to consider the interaction between the two variables.
+
+<br>
+
+#####3. Using the basic principles, convert the formulas in the following two models into functions. (Hint: start by converting the categorical variable into 0-1 variables.)
+
+```{r}
+mod1 <- lm(y ~ x1 + x2, data = sim3)
+mod2 <- lm(y ~ x1 * x2, data = sim3)
+```
+
+<br>
+
+For the more-complicated of these two cases, consider again the application of `model_matrix()`:
+
+```{r}
+model_matrix(y ~ x1 * x2, data = sim3)
+```
+
+In terms of the variables in the headings in the above, the formula would be:
+
+`y = a_0 + a_1*x1 + a_22*x2b + a_23*x2c + a_24*x2d + a_122*x1*x2b + a_123*x1*x2c + a_124*x1*x2d`
+
+Note that the translation of 'x2 = a' is '(x2b, x2c, x2d) = (0, 0, 0)'. Given this, perhaps we may think of the intercept term, a_0, as capturing the some of the effect of x2 = a, if this is the case?
+
+#####4. For sim4, which of mod1 and mod2 is better? I think mod2 does a slightly better job at removing patterns, but it’s pretty subtle. Can you come up with a plot to support my claim?
+
+Having a quick look at sim4:
+```{r}
+head(sim4)
+```
+
+```{r}
+mod1 <- lm(y ~ x1 + x2, data = sim4)
+mod2 <- lm(y ~ x1 * x2, data = sim4)
+
+sim4 <- sim4 %>%
+  gather_residuals(mod1, mod2)
+
+ggplot(sim4) + geom_point(aes(x = x1*x2, y = resid)) +
+  facet_wrap(~ model)
+
+```
+
+The residuals for `mod1` (with `y ~ x1 + x2`) show a minor but noticeable relationship with x1 * x2: as x1 * x2 increases, the residuals tend to be somewhat greater. As one would expect, `mod2`, which uses (`y ~ x1 * x2`), removes this pattern in the residuals.
+
+
+
+
+
