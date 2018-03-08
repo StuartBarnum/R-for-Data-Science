@@ -1,5 +1,5 @@
 ---
-title: "Basic Model Exercises from *R for Data Science*"
+title: "Exercises from \"Model Basics with modelr\""
 output: html_notebook
 ---
 
