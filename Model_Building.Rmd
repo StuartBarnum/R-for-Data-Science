@@ -14,7 +14,7 @@ library(nycflights13)
 library(lubridate)
 ```
 
-####24.2.3 Exercises
+###24.2.3 Exercises
 #####1. In the plot of lcarat vs. lprice, there are some bright vertical strips. What do they represent?
 
 ```{r}
@@ -142,7 +142,7 @@ The examples with extreme residuals suggest that the linear model with `lprice ~
 
 #####4. Does the final model, mod_diamonds2, do a good job of predicting diamond prices? Would you trust it to tell you how much to spend if you were buying a diamond?
 
-```{r, fig.width = 4}
+```{r, fig.width = 6}
 
 diamonds2 <- diamonds2 %>%
 add_predictions(mod_diamond2, "predicted_log_price") %>%
@@ -158,7 +158,7 @@ diamonds2 %>% mutate(fractional_abs_residual = abs(price_prediction - price)/pri
 
 As indicated by the box plot, our model provides a useful indicator of the appropriate price, with the great majority strikingly close
 
-####24.3.5 Exercises
+###24.3.5 Exercises
 #####1. Use your Google sleuthing skills to brainstorm why there were fewer than expected flights on Jan 20, May 26, and Sep 1. (Hint: they all have the same explanation.) How would these days generalise to another year?
 
 Each of these days is the Sunday for a Monday public holiday.
