@@ -1,0 +1,375 @@
+---
+title: "Exercises from \"Model Building\", Chapter 19 from Wickham and Grolemund's *R for Data Science*"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(tidyverse)
+library(modelr)
+options(na.action = na.warn)
+
+library(nycflights13)
+library(lubridate)
+```
+
+####24.2.3 Exercises
+#####1. In the plot of lcarat vs. lprice, there are some bright vertical strips. What do they represent?
+
+```{r}
+
+diamonds2 <- diamonds %>%
+  mutate(lcarat = log2(carat),
+         lprice = log2(price))
+
+ggplot(diamonds2) + geom_point(aes(x = lcarat, y = lprice), alpha = 0.03)
+```
+
+The vertical strips represent round numbers, together with the fact that carat is measured to only two decimal places.
+
+#####2. If log(price) = a_0 + a_1 * log(carat), what does that say about the relationship between price and carat?
+
+Applying the exponential function to both sides gives
+
+`price` = `exp(a_0) * exp(log(carat) * a_1)`
+
+and thus
+
+`price` = `exp(a_0) * carat ^ a_1`
+
+If carat is multiplied by a number `r`, then the new price is
+
+`exp(a_0) * (carat * r) ^ a_1`
+ 
+= `exp(a_0) * (carat ^ a_1) * (r ^ a_1)`
+
+= `price * (r ^ a_1)` (`price` here being the old price)
+
+Therefore, if `carat` is multiplied by `r`, then the price is multiplied by `(r ^ a_1)` 
+
+#####3. Extract the diamonds that have very high and very low residuals. Is there anything unusual about these diamonds? Are they particularly bad or good, or do you think these are pricing errors?
+
+Implement the model and add and plot the residuals, as per discussion in the text:
+```{r}
+mod_diamond2 <- lm(lprice ~ lcarat + color + cut + clarity, data = diamonds2)
+
+diamonds2 <- diamonds2 %>%
+  add_residuals(mod_diamond2, "lresid2")
+
+ggplot(diamonds2, aes(lcarat, lresid2)) + 
+  geom_hex(bins = 50)
+```
+
+Extract the the elements for which `abs(lresid2)` > 0.70, and plot with carat rather than lcarat:
+```{r}
+diamonds_high_residuals <- diamonds2 %>%
+  filter(abs(lresid2) > 0.75)
+
+ggplot(diamonds_high_residuals, aes(carat, lresid2)) + 
+  geom_hex(bins = 50) + labs(y = "residual for log2(price)")
+```
+
+We see an odd As suggested in the above two plots, for the larger (absolute value) residuals for lprice, the positive differences have strong tendency to correspond to lesser values of 
+
+```{r}
+library(grid)
+library(gridExtra)
+
+diamonds_high_residuals <- diamonds_high_residuals %>% 
+  mutate(`log residual price:` = ifelse(lresid2 > 0.75, 
+                                       "above 0.75", 
+                                       "below 0.75"))
+  
+plt_high_residuals <- ggplot(diamonds_high_residuals) + 
+  geom_bar(aes(x = cut, fill = `log residual price:`), 
+           stat = "count") +
+  theme(legend.position = "bottom") +
+  labs(title = "counts for high residuals")
+  
+plt_all <- ggplot(diamonds2) + geom_bar(aes(x = cut), stat = "count") +
+  labs(title = "counts for all")
+
+stacked_plot <- function(gg_1, gg_2) {
+  p1 <- ggplot_gtable(ggplot_build(gg_1))
+  p2 <- ggplot_gtable(ggplot_build(gg_2))
+
+  #to line-up the the x-axes, find the maximum of the two widths
+  maxWidth <-  unit.pmax(p1$widths, p2$widths)
+
+  #set the widths of both plots to this maximum
+  p1$widths <- maxWidth
+  p2$widths <- maxWidth
+
+  #output the stacked plots
+  return (grid.arrange(p1, p2))
+}
+
+stacked_plot(plt_all, plt_high_residuals)
+
+```
+
+```{r}
+
+plt_residuals <- ggplot(diamonds_high_residuals) + 
+  geom_bar(aes(x = color, fill = `log residual price:`), 
+           stat = "count") +
+  theme(legend.position = "bottom") +
+  labs(title = "counts for high residuals")
+  
+plt_all <- ggplot(diamonds2) + geom_bar(aes(x = color), stat = "count") +
+  labs(title = "counts for all")
+
+stacked_plot(plt_all, plt_residuals)
+
+```
+
+```{r}
+
+plt_residuals <- ggplot(diamonds_high_residuals) + 
+  geom_bar(aes(x = clarity, fill = `log residual price:`), 
+           stat = "count") +
+  theme(legend.position = "bottom") +
+  labs(title = "counts for high residuals")
+  
+plt_all <- ggplot(diamonds2) + geom_bar(aes(x = clarity), stat = "count") +
+  labs(title = "counts for all")
+
+stacked_plot(plt_all, plt_residuals)
+```
+
+The examples with extreme residuals suggest that the linear model with `lprice ~ lcarat + color + cut + clarity` may not have adequately effects of color and clarity.
+
+#####4. Does the final model, mod_diamonds2, do a good job of predicting diamond prices? Would you trust it to tell you how much to spend if you were buying a diamond?
+
+```{r, fig.width = 4}
+
+diamonds2 <- diamonds2 %>%
+add_predictions(mod_diamond2, "predicted_log_price") %>%
+mutate(price_prediction = 2 ^ predicted_log_price)
+
+diamonds2 %>% mutate(fractional_abs_residual = abs(price_prediction - price)/price) %>%
+  ggplot(aes(x = log10(price), y = fractional_abs_residual)) + 
+  geom_boxplot(aes(group = cut_number(price, 20))) +
+  labs(title = "Absolute Values of the Residuals, as Fractions of the Prices") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+As indicated by the box plot, our model provides a useful indicator of the appropriate price, with the great majority strikingly close
+
+####24.3.5 Exercises
+#####1. Use your Google sleuthing skills to brainstorm why there were fewer than expected flights on Jan 20, May 26, and Sep 1. (Hint: they all have the same explanation.) How would these days generalise to another year?
+
+Each of these days is the Sunday for a Monday public holiday.
+
+
+#####2. What do the three days with high positive residuals represent? How would these days generalise to another year?
+
+```{r, eval = FALSE}
+daily %>% 
+  top_n(3, resid)
+#> # A tibble: 3 × 5
+#>         date     n  wday resid   term
+#>       <date> <int> <ord> <dbl> <fctr>
+#> 1 2013-11-30   857   Sat 112.4   fall
+#> 2 2013-12-01   987   Sun  95.5   fall
+#> 3 2013-12-28   814   Sat  69.4   fall
+
+```
+
+They represent heavy travel days around the Thanksgiving and Christmas holidays
+
+####3. Create a new variable that splits the wday variable into terms, but only for Saturdays, i.e. it should have Thurs, Fri, but Sat-summer, Sat-spring, Sat-fall. How does this model compare with the model with every combination of wday and term?
+
+I will compare the model under consideration here with the n ~ wday * term model, using facets.
+
+```{r, fig.width = 8}
+
+daily <- flights %>% 
+  mutate(date = make_date(year, month, day)) %>% 
+  group_by(date) %>% 
+  summarise(n = n())
+
+daily <- daily %>% 
+  mutate(wday = as.character(wday(date, label = TRUE)))
+
+term <- function(date) {
+  cut(date, 
+    breaks = ymd(20130101, 20130605, 20130825, 20140101),
+    labels = c("spring", "summer", "fall") 
+  )
+}
+
+daily <- daily %>% 
+  mutate(term = term(date)) 
+
+daily <- daily %>%
+  mutate(sat_season_split = ifelse(wday == "Sat", 
+                                  ifelse(term == "spring",
+                                         "Sat_spring",
+                                         ifelse(term == "summer",
+                                                "Sat_summer",
+                                                "Sat_fall")),
+                                  wday))
+
+daily <- daily %>%
+  mutate(sat_season_split = as.factor(sat_season_split))
+
+mod_sat_split <- lm(n ~ sat_season_split, data = daily)
+
+mod_wday_term <- lm(n ~ wday*term, data = daily)
+
+daily <- daily %>% gather_residuals(`Model with Saturday Split by School Term` = mod_sat_split, 
+                                    `Model using the Product of Weekay and School Term` = mod_wday_term)
+
+ggplot(daily) + geom_line(aes(x = date, y = resid)) + facet_wrap(~ model)
+
+```
+
+```{r, fig.width = 8}
+
+ggplot(daily) + geom_line(aes(x = date, y = resid, color = wday)) + facet_wrap(~ model)
+
+```
+
+The plots reveal little overall difference in closeness of fit (but with the differences over certain periods of the year). Likewise for the quantitative measures of goodness of fit, as per the following.
+
+```{r}
+summary(mod_sat_split)
+```
+
+```{r}
+summary(mod_wday_term)
+```
+
+#####4. Create a new wday variable that combines the day of week, term (for Saturdays), and public holidays. What do the residuals of that model look like?
+
+```{r, fig.width = 8}
+library(timeDate)
+
+date(holidayNYSE(2013))
+
+daily <- daily %>% select(-model)
+daily <- daily %>% select(-resid)
+
+daily <- daily %>% mutate(wday_term_holiday = ifelse(date %in% date(holidayNYSE(2013)),
+                                                     "holiday", 
+                                                     as.character(sat_season_split)))
+
+mod_sat_split
+
+mod_sat_split_holidays <- lm(n ~ wday_term_holiday, data = daily)
+
+daily <- daily %>% 
+  gather_residuals(`Holidays Considered` = mod_sat_split_holidays,
+                   `Holidays not Considered` = mod_sat_split)
+
+ggplot(daily) + geom_line(aes(date, resid)) + facet_wrap(~ model)
+
+daily
+```
+
+As expected, the "Holidays Considered" model (with the variable that took into account whether a particular holiday is a public holiday) did not present an improvement. After all, for many of the holidays, the sharp effect is on a day before or after the holiday.
+
+#####5. What happens if you fit a day of week effect that varies by month (i.e. n ~ wday * month)? Why is this not very helpful?
+
+Likely overfitting of the model, which will contain many predicting combinations (e.g. Wednesday in June), each with very few examples. Testing this hypothesis:
+
+```{r, fig.width = 8}
+
+daily <- daily %>% select(-resid, -model) %>%
+  mutate(month = month(date, label = TRUE))
+
+mod_wday_month <- lm(n ~ wday * month, data = daily)
+
+daily <- daily %>% gather_residuals(`Weeks Combined with Months` = mod_wday_month,
+                           `Day of Week with Saturday split by School Term` = mod_sat_split)
+
+ggplot(daily) + geom_line(aes(date, resid)) + facet_wrap(~ model)
+
+```
+
+```{r, fig.width = 8}
+ggplot(daily) + geom_line(aes(x = date, y = resid, color = wday)) + facet_wrap(~ model)
+```
+
+
+
+The fit of the model with the weekdays considered together with months is closer. However, the model would likely not be useful in making predictions for, say, flights for years other than 2013.
+
+#####6. What would you expect the model n ~ wday + ns(date, 5) to look like? Knowing what you know about the data, why would you expect it to be not particularly effective?
+
+I might expect the model to fit a smooth trend for each of the weekdays (e.g. the plot for Saturdays would be smooth) but, like all of our models, sharply cyclical over the the weeks. The splines will roughly reflect the school terms, but will make for a smoother plot.
+
+```{r, fig.width = 8}
+library(splines)
+
+daily <- daily %>% select(-model, -resid)
+
+mod_wday_plus_spline <- lm(n ~ wday + ns(date, 5), data = daily)
+
+daily <- daily %>% 
+  gather_predictions(`Weekdays Combined with Splines` = mod_wday_plus_spline,
+                           `Day of Week with Saturday split by School Term` = mod_sat_split) %>%
+  mutate(resid = pred - n)
+
+ggplot(daily) + geom_line(aes(x= date, y = pred, color = wday)) + facet_wrap(~ model)
+
+```
+
+The residuals, by day of the week:
+
+```{r, fig.width = 8}
+ggplot(daily) + geom_line(aes(x = date, y = resid, color = wday)) + facet_wrap(~ model)
+
+```
+
+#####7. We hypothesised that people leaving on Sundays are more likely to be business travellers who need to be somewhere on Monday. Explore that hypothesis by seeing how it breaks down based on distance and time: if it’s true, you’d expect to see more Sunday evening flights to places that are far away.
+
+I tried various models and processed the residuals in various ways. The following plot, constructed with box plots and red dots indicating the mean residual distance for each hour, shows properties of the distribution of the the residuals for a model constructed with splines. 
+
+```{r, fig.width = 8, fig.height = 12}
+
+#combine the scheduled hour and minute values into a single number that accuratly represents the time, and then add the days of the week
+flights_plus <- flights %>%
+  mutate(time = hour + minute * ( 1/ 60)) %>%
+  mutate(wday = wday(time_hour, label = TRUE))
+
+model <- lm(distance ~ ns(time, 5), data = flights_plus)
+
+flights_plus <- flights_plus %>% 
+  gather_predictions(model) %>%
+  mutate(residual = pred - distance)
+
+flights_plus %>% mutate(hour = as.factor(hour)) %>%
+  group_by(wday, hour) %>%
+  summarize(residual = mean(residual)) %>%  #mean residual called "residual" for purposes of mapping
+  ggplot() + geom_point(aes(x = hour, y = residual), 
+                        color = "red", size = 2) +
+  geom_boxplot(data = (flights_plus %>% mutate(hour = as.factor(hour))), 
+                       aes(x = hour, y = residual),
+               inherit.aes = FALSE) + labs(y = "residual of the distance") +
+  facet_wrap(~ wday, ncol = 2)
+
+```
+
+In the above, Saturday shows noticeable differences from the other days in the distribution of the distances. However, for Sunday, other than its thus standing out in relevant respects from Saturday, I found no evidence that Sunday evening flights are to places further away than the evening flights during the rest of the week.
+
+#####8. It’s a little frustrating that Sunday and Saturday are on separate ends of the plot. Write a small function to set the levels of the factor so that the week starts on Monday.
+
+We can use the fct_shift function.
+
+```{r}
+#wrap the application of fct_shift() in a user-defined function,
+weeks_reordered <- function(df) {
+  return (df %>% mutate(wday = fct_shift(wday, n = 1L)))
+}
+
+#apply the function to the data frame constructed in the answer to #7
+flights_plus <- weeks_reordered(flights_plus)
+
+#test the level order
+levels(flights_plus$wday)
+```
+
