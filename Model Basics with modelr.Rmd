@@ -1,6 +1,8 @@
 ---
-title: "Exercises from \"Model Basics with modelr\""
-output: html_notebook
+title: "Exercises from \"Model Basics with modelr\", Chapter 18 of Wickham and Grolemund's *R for Data Science*"
+output:
+  html_document:
+    df_print: paged
 ---
 
 ####23.2.1 Exercises 
@@ -115,8 +117,8 @@ Con: may hide bias in the original model if, for example, the positive residuals
 #####1. What happens if you repeat the analysis of sim2 using a model without an intercept. What happens to the model equation? What happens to the predictions?
 
 ```{r, fig.height = 1.2, warning = FALSE}
+library(modelr)
 ggplot(sim2) + geom_point(aes(x, y), size = 1)
-
 ```
 
 ```{r}
