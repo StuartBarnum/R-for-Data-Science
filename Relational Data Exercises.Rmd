@@ -1,5 +1,5 @@
 ---
-title: "Relational Data Exercises from *R for Data Science*"
+title: "Relational Data Exercises from Hadley Wickham and Garrett Grolemund's *R for Data Science*, Chapter 10"
 author: "Stuart Barnum"
 date: "2/3/2018"
 output: html_document
