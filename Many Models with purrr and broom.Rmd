@@ -1,0 +1,219 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+###25.2.5 Exercises
+
+#####1.A linear trend seems to be slightly too simple for the overall trend. Can you do better with a quadratic polynomial? How can you interpret the coefficients of the quadratic? (Hint you might want to transform year so that it has mean zero.)
+
+I will put both the simple linear model and the polynomial models into the data frame, map the residuals for both as in the text, and then facet on the models.
+
+```{r, fig.width = 6}
+library(tidyverse)
+library(modelr)
+library(gapminder)
+
+by_country <- gapminder %>% 
+  group_by(country, continent) %>% 
+  nest()
+
+country_model_1 <- function(df) {
+  lm(lifeExp ~ year, data = df)
+}
+
+country_model_2 <- function(df) {
+  lm(lifeExp ~ poly(year - mean(year), degree = 2), data = df)
+}
+
+models_1 <- map(by_country$data, country_model_1)
+
+models_2 <- map(by_country$data, country_model_2)
+
+by_country <- by_country %>% 
+  mutate(model_1 = map(data, country_model_1),
+         model_2 = map(data, country_model_2))
+
+by_country <- by_country %>% 
+  mutate(
+    resids_1 = map2(data, models_1, add_residuals),
+    resids_2 = map2(data, models_2, add_residuals)
+  )
+
+residuals <- unnest(by_country, resids_1, resids_2) %>% select(country:resid, resid1)
+
+#As revealed by this bit of code, the construction here is a bit hack-ish
+residuals <- residuals %>% gather(resid, resid1, key = "model", value = "residual") %>% 
+  mutate(model = ifelse(model == "resid", "Simple Linear Model", "Polynomial Model"))
+
+residuals %>% ggplot(aes(x = year, y = residual)) + geom_line(aes(group = country), alpha = 1/4) +
+  geom_smooth(se = FALSE) + facet_wrap(~ model)
+```
+
+We can also facet on both model and continent:
+
+```{r, fig.width = 6, fig.height = 10}
+
+residuals %>% ggplot(aes(x = year, y = residual)) + geom_line(aes(group = country), alpha = 1/4) +
+  geom_smooth(se = FALSE) + facet_wrap(continent~ model, ncol = 2)
+
+```
+
+Now consider the quantitative comparison of the models, in terms of R-squared
+
+```{r, fig.width = 6}
+
+#remove the residuals to simplify the data frame
+#by_country <- by_country %>% select(-resids_1, -resids_2)
+
+glance <- by_country %>% gather(model_1, model_2, key = "model_name", value = "model")
+
+#We apply glance() from the broom package, which, it appears, needs to be invoked inside the map function.
+glance <- glance %>% 
+  mutate(glance = map(model, broom::glance)) %>%
+  unnest(glance, .drop = TRUE)
+
+glance %>% 
+  mutate(model_name = ifelse(model_name == "model_1", "Simple Linear Model", "Quadratic Polynomial Model")) %>%
+  ggplot(aes(continent, r.squared)) + 
+    geom_jitter(width = 0.5) + facet_wrap(~ model_name)
+
+```
+
+Finding the countries for which r.squared is less than 0.125 in one or the other of the models:
+
+```{r}
+glance %>% filter(r.squared < 0.125)
+```
+
+All of these countries display a mix of economic development (e.g. felicitous use of money from diamonds in Botswana) and tragedy (e.g. e.g. AIDS in Southern Africa and Genocide in Rwanda). The failure of both of the models for Rwanda is quite striking, and likely reflects the fact that both the genocide and the strong economic development that followed it went against the trends of other countries.
+
+<br>
+
+###2. Explore other methods for visualising the distribution of R-squared per continent. You might want to try the ggbeeswarm package, which provides similar methods for avoiding overlaps as jitter, but uses deterministic methods.
+
+```{r}
+library(ggbeeswarm)
+
+#substitute "beeswarm" for "jitter" in the geom and take out the width parameter, which geom_beeswarm doesn't seem to recognize
+glance %>% 
+  mutate(model_name = ifelse(model_name == "model_1", "Simple Linear Model", "Quadratic Polynomial Model")) %>%
+  ggplot(aes(continent, r.squared)) + 
+    geom_beeswarm() + facet_wrap(~ model_name)
+```
+
+<br>
+
+#####3. To create the last plot (showing the data for the countries with the worst model fits), we needed two steps: we created a data frame with one row per country and then semi-joined it to the original dataset. It’s possible avoid this join if we use unnest() instead of unnest(.drop = TRUE). How?
+
+Here is the plot from the text:
+
+```{r}
+
+bad_fit <- filter(glance, r.squared < 0.25 & model_name == "model_1")  #model_1 is the model represented in the plot in the text
+
+gapminder %>% 
+  semi_join(bad_fit, by = "country") %>% 
+  ggplot(aes(year, lifeExp, colour = country)) +
+    geom_line()
+
+```
+
+We recreate this plot without the semi_join. 
+
+```{r}
+
+#We apply glance() from the broom package, which, it appears, needs to be invoked inside the map function.
+glance_2 <- by_country %>%
+  select(-model_2) %>% #remove the polynomial model that we used in the facet maps
+  mutate(glance = map(model_1, broom::glance)) %>%
+  unnest(glance) %>%
+  filter(r.squared < 0.125) %>%
+  unnest(data)
+
+ggplot(glance_2) + geom_line(aes(x = year, y = lifeExp, color = country))
+
+```
+
+<br>
+
+### 25.4.5 Exercises
+
+#####5. List all the functions that you can think of that take a atomic vector and return a list.
+
+`str_split()` and `map()` come to mind.
+
+```{r}
+
+map(c(1, 2), function(x) x)
+
+```
+
+<br>
+
+#####2. Brainstorm useful summary functions that, like `quantile()`, return multiple values.
+
+`range()` comes to mind 
+
+<br>
+
+#####3. What’s missing in the following data frame? How does `quantile()` return that missing piece? Why isn’t that helpful here?
+
+```{r}
+
+mtcars %>% 
+  group_by(cyl) %>% 
+  summarise(q = list(quantile(mpg))) %>% 
+  unnest()
+
+```
+
+`quantile()` returns both the quantile values and the names of those values (e.g. "0%" for the lowest value). The names are included in the lists introduced in the summarize function in the above, but then removed when the data frame us unnested (the final step in the above). Beyond this point, it seems I don't understand the question. It might be useful in the `unnest()` function to also put the names (the values of probs) in the unnested dataframe.
+
+<br>
+
+#####4. What does this code do? Why might might it be useful?
+
+```{r}
+mtcars %>% 
+  group_by(cyl) %>% 
+  summarise_each(funs(list))
+```
+
+In addition to the message that `summarise_each()` has been deprecated in favor of `summarise_all()`, etc., the code produces, for each of the values of the variable that has been grouped by (`cyl`), a row of vectors that contain all of the values of the variables in the other columns of the data frame. It may be useful when applying iterative constructions such as map() over the elements of the columns of the original data frame.
+
+<br>
+
+###25.5.3 Exercises
+
+#####1.Why might the lengths() function be useful for creating atomic vector columns from list-columns?
+
+It is useful for testing whether the elements in list columns have the same same length, as per the following.
+
+
+```{r}
+
+df <- tibble(x = list(1:3, 1), y = list(1:4, 1))
+
+map(df, lengths)
+
+```
+
+Because `1:3` and `1:4` do not have the same length, `df` cannot be un-nested.
+
+```{r, error = TRUE}
+unnest(df)
+```
+
+<br>
+
+#####2. List the most common types of vector found in a data frame. What makes lists different?
+
+The most common types of vectors would be the atomic types integer, double, and character, followed, I guess, by logical.
+
+
+
+
+
