@@ -28,6 +28,8 @@ ggplot(diamonds2) + geom_point(aes(x = lcarat, y = lprice), alpha = 0.03)
 
 The vertical strips represent round numbers, together with the fact that carat is measured to only two decimal places.
 
+<br>
+
 #####2. If log(price) = a_0 + a_1 * log(carat), what does that say about the relationship between price and carat?
 
 Applying the exponential function to both sides gives
@@ -47,6 +49,8 @@ If carat is multiplied by a number `r`, then the new price is
 = `price * (r ^ a_1)` (`price` here being the old price)
 
 Therefore, if `carat` is multiplied by `r`, then the price is multiplied by `(r ^ a_1)` 
+
+<br>
 
 #####3. Extract the diamonds that have very high and very low residuals. Is there anything unusual about these diamonds? Are they particularly bad or good, or do you think these are pricing errors?
 
@@ -140,6 +144,8 @@ stacked_plot(plt_all, plt_residuals)
 
 The examples with extreme residuals suggest that the linear model with `lprice ~ lcarat + color + cut + clarity` may not have adequately effects of color and clarity.
 
+<br>
+
 #####4. Does the final model, mod_diamonds2, do a good job of predicting diamond prices? Would you trust it to tell you how much to spend if you were buying a diamond?
 
 ```{r, fig.width = 6}
@@ -157,6 +163,8 @@ diamonds2 %>% mutate(fractional_abs_residual = abs(price_prediction - price)/pri
 ```
 
 As indicated by the box plot, our model provides a useful indicator of the appropriate price, with the great majority strikingly close
+
+<br>
 
 ###24.3.5 Exercises
 #####1. Use your Google sleuthing skills to brainstorm why there were fewer than expected flights on Jan 20, May 26, and Sep 1. (Hint: they all have the same explanation.) How would these days generalise to another year?
@@ -371,7 +379,7 @@ In the above, Saturday shows noticeable differences from the other days in the d
 
 #####8. It’s a little frustrating that Sunday and Saturday are on separate ends of the plot. Write a small function to set the levels of the factor so that the week starts on Monday.
 
-We can use the fct_shift function.
+We can use the `fct_shift` function.
 
 ```{r}
 #wrap the application of fct_shift() in a user-defined function,
