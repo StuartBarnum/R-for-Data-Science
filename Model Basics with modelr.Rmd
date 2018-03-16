@@ -5,7 +5,7 @@ output:
     df_print: paged
 ---
 
-####23.2.1 Exercises 
+###23.2.1 Exercises 
 #####1. Fit a linear model to the simulated data below, and visualise the results. Rerun a few times to generate different simulated datasets. What do you notice about the model?
 
 ```{r, message=FALSE, warning=FALSE}
@@ -43,6 +43,7 @@ ggplot(facet_data) + geom_point(aes(x=x, y=y)) +
 
 I expected to see more affect on the lines from the outliers in these plots.
 
+<br>
 
 #####2. Use optim() to fit a linear model to the simulated data above, using mean-absolute distance rather than root-mean-squared distance, and compare the result to the linear model.
 
@@ -96,21 +97,27 @@ ggplot(facet_data, aes(x=x, y=y)) + geom_point(size = 2) +
 
 As expected, the wider span of the neighborhoods makes the model-fit somewhat less susceptible to the outliers, and perhaps overfitting.
 
+<br>
+
 #####2. `add_predictions()` is paired with `gather_predictions()` and `spread_predictions()`. How do these three functions differ?
 
 `add_predictions` places a new column in the data with a single prediction. `spread_predictions` adds more than one prediction, each in its own column. `gather_predictions` stacks the predictions (more than one) in a single column, in the manner of the `gather()` function and "tidy" data.
+
+<br>
 
 #####3. What does geom_ref_line() do? What package does it come from? Why is displaying a reference line in plots showing residuals useful and important?
 
 `geom_ref_line()`, which is part of the modelr package, adds a line to a plot, which may help in the examination of residuals.
 
-######4.
+<br>
 
-Why might you want to look at a frequency polygon of absolute residuals? What are the pros and cons compared to looking at the raw residuals?
+######4. Why might you want to look at a frequency polygon of absolute residuals? What are the pros and cons compared to looking at the raw residuals?
 
 Pro: makes the absolute residuals more visible, with twice the contrast
 
 Con: may hide bias in the original model if, for example, the positive residuals tend to be greater than the negative residuals
+
+<br>
 
 ####23.4.5 Exercises
 
@@ -132,6 +139,8 @@ grid
 ```
 
 This result is the same as what we would get if using y ~ x instead of y ~ x - 1.
+
+<br>
 
 #####2. Use model_matrix() to explore the equations generated for the models I fit to sim3 and sim4. Why is * a good shorthand for interaction?
 
@@ -203,6 +212,8 @@ In terms of the variables in the headings in the above, the formula would be:
 `y = a_0 + a_1*x1 + a_22*x2b + a_23*x2c + a_24*x2d + a_122*x1*x2b + a_123*x1*x2c + a_124*x1*x2d`
 
 Note that the translation of 'x2 = a' is '(x2b, x2c, x2d) = (0, 0, 0)'. Given this, perhaps we may think of the intercept term, a_0, as capturing the some of the effect of x2 = a, if this is the case?
+
+<br>
 
 #####4. For sim4, which of mod1 and mod2 is better? I think mod2 does a slightly better job at removing patterns, but it’s pretty subtle. Can you come up with a plot to support my claim?
 
