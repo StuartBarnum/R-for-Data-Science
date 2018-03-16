@@ -10,12 +10,14 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
-#### 13.3.1 Exercises
+### 13.3.1 Exercises
 ##### 1. Add a surrogate key to *flights*.
 ```{r}
 library(nycflights13)
 flights %>% mutate(row_number = row_number())
 ```
+
+<br>
 
 ##### 2. Identify the keys in the following datasets
 `babynames::babynames`
@@ -69,7 +71,7 @@ In the diamonds dataset, grouping by all of the keys as above leaves 149 rows wi
 
 ***
 
-#### 13.4.6 Exercises
+### 13.4.6 Exercises
 ##### 1. Compute the average delay by destination, then join on the airports data frame so you can show the spatial distribution of delays.
 
 ```{r}
@@ -88,6 +90,8 @@ airport_distribution %>%
 
 ```
 
+<br>
+
 ###### 2. Add the location of the origin and destination (i.e. the lat and lon) to `flights`.
 
 ```{r}
@@ -100,6 +104,8 @@ temp <- flights %>%
   rename(dest_lat = lat, dest_lon = lon)
 temp
 ```
+
+<br>
 
 #####3. Is there a relationship between the age of a plane and its delays?
 
@@ -192,6 +198,7 @@ ggplot(older_plane_investigation %>% na.omit) +
 
 As suggested in the Flight Delay Averages plot, we see from the above that the number of planes in use, for departures from New York City, falls precipitously as the planes approach 30 years in age.
 
+<br>
 
 #####4. What weather conditions make it more likely to see a delay?
 
@@ -227,7 +234,7 @@ weather_by_flight %>% na.omit() %>%
  
 As visibility increases, we see a decrease in both cancellations and the delays. However, given that the vast majority of cases rest in the visibility category of 10 or greater, some guardedness in our conclusions, based on the data in the `nycflights13` package, is warranted.
 
-##### What happened on June 13 2013? Display the spatial pattern of delays, and then use Google to cross-reference with the weather.
+#####5. What happened on June 13 2013? Display the spatial pattern of delays, and then use Google to cross-reference with the weather.
 
 ```{r}
 
@@ -252,7 +259,7 @@ airport_distribution_6_13 %>%
 There were notable delays in Chattanooga, Tennessee and Birmingham, Alabama. These may have been due to severe storms called decheros. See https://www.weatherworksinc.com/June-12-13-Derechoes .
 
 
-####13.5.1 Exercises
+###13.5.1 Exercises
 #####1. What does it mean for a flight to have a missing tailnum? What do the tail numbers that don’t have a matching record in planes have in common? (Hint: one variable explains ~90% of the problems.)
 
 ```{r}
@@ -275,7 +282,9 @@ comparison
 
 Column `n.x` reflects all of the data in the `flights` dataframe, whereas `n.y` reflects flights for which tail number information is missing. We see that MQ (Envoy Airlines) and AA (American Airlines) are responsible for most of the missing tail-number data.
 
-####2. Filter `flights` to only show flights with planes that have flown at least 100 flights.
+<br>
+
+#####2. Filter `flights` to only show flights with planes that have flown at least 100 flights.
 
 ```{r}
 at_least_hundred <- flights %>%
@@ -304,6 +313,8 @@ second_method <- flights %>%
 second_method  
 ```
 
+<br>
+
 #####3. Combine `fueleconomy::vehicles` and `fueleconomy::common` to find only the records for the most common models.
 
 We can think of vehicle models at various levels specificity. When a certain car is rebranded under a different name (say, a Chevrolet branded as a GM), is it the same "model"? To see the the extent of this sort of thing (along with, probably, some other issues that could go into whether the variable `model` uniquely identifies vehicle models), consider the following calculation, which uncovers the values of `model` that have more than one corresponding vehicle make. 
@@ -321,6 +332,8 @@ In most but not all of the cases, the two or three models with the different ent
 vehicles %>%
   semi_join(common, by = c("make", "model"))
 ```
+
+<br>
 
 #####4. Find the 48 hours (over the course of the whole year) that have the worst delays. Cross-reference it with the weather data. Can you see any patterns?
 
@@ -355,6 +368,8 @@ difference
 
 The above shows the differences between the column means for the 48 hours with the greatest delays and the column means for all of the flights (for all of the hours of the year). As one might expect, for the 48 hours with the greatest delays, the average visibility and pressure were somewhat lesser, while the average precipitation was somewhat greater.
 
+<br>
+
 #####5. What does anti_join(flights, airports, by = c("dest" = "faa")) tell you? What does anti_join(airports, flights, by = c("faa" = "dest")) tell you?
 
 The dataframe `anti_join(flights, airports, by = c("dest" = "faa"))` identifies the flights in the `flights` dataframe for which the destination is not listed in the `airports` dataframe. Both of the flights and the airports dataframe are supposed to cover domestic flights, and airports, only. So it may seem that result of the "anti-join" include fights to domestic airports for which data in the `airports` dataframe is missing. Let's look.
@@ -372,6 +387,8 @@ anti_join(airports, flights, by = c("faa" = "dest")) %>%
 ```
 
 It appears that there were 1,357 domestic airports reflected in the airports data to which there were no flights (as per the `flights` data) from New York.
+
+<br>
 
 #####6. You might expect that there’s an implicit relationship between plane and airline, because each plane is flown by a single airline. Confirm or reject this hypothesis using the tools you’ve learned above.
 
