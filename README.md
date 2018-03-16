@@ -1,7 +1,7 @@
 # R-for-Data-Science
 Solutions to selected exercises from Hadley Wickham and Garrett Grolemund's *R for Data Science* (<http://r4ds.had.co.nz>)
 
-from Chapter 10, on relational data with dplyr: <br>
+Chapter 10, on relational data with dplyr: <br>
 <https://stuartbarnum.github.io/R-for-Data-Science/Relational_Data_Exercises.html> <br> 
 <br>
 Chapter 18, "Model basics with modelr": <br>
