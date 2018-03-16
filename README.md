@@ -1,4 +1,4 @@
-##### Complete sets of solutions to Chapters 10, 18, 19, and 20:
+#### Complete sets of solutions to Chapters 10, 18, 19, and 20:
 
 Chapter 10, on relational data with dplyr: <br>
 <https://stuartbarnum.github.io/R-for-Data-Science/Relational_Data_Exercises.html> <br> 
