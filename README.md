@@ -1,4 +1,6 @@
-#### Complete sets of solutions to Chapters 10, 18, 19, and 20
+Wickham and Grolemund's book, *R for Data Science*, may be found at <http://r4ds.had.co.nz>.
+
+Complete sets of solutions:
 
 [Chapter 10, on relational data with dplyr](https://stuartbarnum.github.io/R-for-Data-Science/Relational_Data_Exercises.html) <br> 
 <br>
