@@ -1,7 +1,6 @@
 #### Complete sets of solutions to Chapters 10, 18, 19, and 20
 
-Chapter 10, on relational data with dplyr: <br>
-<https://stuartbarnum.github.io/R-for-Data-Science/Relational_Data_Exercises.html> <br> 
+[Chapter 10, on relational data with dplyr]<https://stuartbarnum.github.io/R-for-Data-Science/Relational_Data_Exercises.html> <br> 
 <br>
 Chapter 18, "Model basics with modelr": <br>
 <https://stuartbarnum.github.io/R-for-Data-Science/Model_Basics_with_modelr.html>  <br>
