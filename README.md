@@ -1,4 +1,4 @@
-Wickham and Grolemund's book, *R for Data Science*, may be found at <http://r4ds.had.co.nz>.
+Hadley Wickham and Garrett Grolemund's book, *R for Data Science*, may be found at <http://r4ds.had.co.nz>.
 
 Complete sets of solutions:
 
